@@ -490,10 +490,10 @@ def apply_next_epoch_with_attestations(
 
 
 def apply_next_slots_with_attestations(
-    spec, state, store, slots, fill_cur_epoch, fill_prev_epoch, test_steps, participation_fn=None
+    spec, state, store, slots, fill_cur_epoch, fill_prev_epoch, test_steps, participation_fn=None, force_slot_to_attest=None
 ):
     _, new_signed_blocks, post_state = next_slots_with_attestations(
-        spec, state, slots, fill_cur_epoch, fill_prev_epoch, participation_fn=participation_fn
+        spec, state, slots, fill_cur_epoch, fill_prev_epoch, participation_fn=participation_fn, force_slot_to_attest=force_slot_to_attest
     )
     for signed_block in new_signed_blocks:
         block = signed_block.message

@@ -252,7 +252,7 @@ def get_valid_attestations_at_slot(
             else:
                 return participation_fn(state.slot, index, comm)
 
-        yield get_valid_attestation(
+        attestation = get_valid_attestation(
             spec,
             state,
             slot_to_attest,
@@ -261,6 +261,8 @@ def get_valid_attestations_at_slot(
             filter_participant_set=participants_filter,
             beacon_block_root=beacon_block_root,
         )
+        if any(attestation.aggregation_bits):
+            yield attestation
 
 
 def get_valid_attestation_at_slot(
@@ -287,7 +289,7 @@ def get_valid_attestation_at_slot(
 
 
 def next_slots_with_attestations(
-    spec, state, slot_count, fill_cur_epoch, fill_prev_epoch, participation_fn=None
+    spec, state, slot_count, fill_cur_epoch, fill_prev_epoch, participation_fn=None, force_slot_to_attest=None
 ):
     """
     participation_fn: (slot, committee_index, committee_indices_set) -> participants_indices_set
@@ -301,6 +303,7 @@ def next_slots_with_attestations(
             fill_cur_epoch,
             fill_prev_epoch,
             participation_fn,
+            force_slot_to_attest=force_slot_to_attest,
         )
         signed_blocks.append(signed_block)
         payload_state_transition_no_store(spec, post_state, signed_block.message)
@@ -316,7 +319,9 @@ def _add_valid_attestations(spec, state, block, slot_to_attest, participation_fn
             slot_to_attest,
             participation_fn=participation_fn,
         )
-        block.body.attestations.append(attestation)
+        # Skip attestations without participation
+        if any(attestation.aggregation_bits):
+            block.body.attestations.append(attestation)
     else:
         attestations = get_valid_attestations_at_slot(
             state,
@@ -325,7 +330,9 @@ def _add_valid_attestations(spec, state, block, slot_to_attest, participation_fn
             participation_fn=participation_fn,
         )
         for attestation in attestations:
-            block.body.attestations.append(attestation)
+            # Skip attestations without participation
+            if any(attestation.aggregation_bits):
+                block.body.attestations.append(attestation)
 
 
 def next_epoch_with_attestations(
@@ -351,12 +358,17 @@ def state_transition_with_full_block(
     participation_fn=None,
     sync_aggregate=None,
     block=None,
+    force_slot_to_attest=None
 ):
     """
     Build and apply a block with attestations at the calculated `slot_to_attest` of current epoch and/or previous epoch.
     """
     if block is None:
         block = build_empty_block_for_next_slot(spec, state)
+    if force_slot_to_attest is not None:
+        _add_valid_attestations(
+            spec, state, block, force_slot_to_attest, participation_fn=participation_fn
+        )
     if fill_cur_epoch and state.slot >= spec.MIN_ATTESTATION_INCLUSION_DELAY:
         slot_to_attest = state.slot - spec.MIN_ATTESTATION_INCLUSION_DELAY + 1
         if slot_to_attest >= spec.compute_start_slot_at_epoch(spec.get_current_epoch(state)):
