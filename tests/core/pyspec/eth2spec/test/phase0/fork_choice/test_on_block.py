@@ -1649,31 +1649,32 @@ def test_experiment(spec, state):
     on_tick_and_append_step(spec, store, current_time, test_steps)
     assert store.time == current_time
 
-    # Epoch 0
-    state, store, _ = yield from apply_next_epoch_with_attestations(
-            spec, state, store, True, False, test_steps=test_steps
-    )
+    # Epoch 0 to 2
+    for _ in range(0, 3):
+        state, store, _ = yield from apply_next_epoch_with_attestations(
+                spec, state, store, True, False, test_steps=test_steps
+        )
 
-    assert state.slot == spec.SLOTS_PER_EPOCH * 1
+    assert state.slot == spec.SLOTS_PER_EPOCH * 3
 
-    # Epoch 1
+    # Epoch 3
     state, store, _ = yield from apply_next_epoch_with_attestations(
             spec, state, store, True, False, test_steps=test_steps, participation_fn=participation_split(7, False)
     )
 
-    assert state.slot == spec.SLOTS_PER_EPOCH * 2
+    assert state.slot == spec.SLOTS_PER_EPOCH * 4
 
-    # Epoch 2
+    # Epoch 4
     # skip the first slot of the epoch
     next_slots(spec, state, 1)
 
-    assert state.slot == spec.SLOTS_PER_EPOCH * 2 + 1
+    assert state.slot == spec.SLOTS_PER_EPOCH * 4 + 1
 
     # chain split
     #chain_b = get_store_full_state(spec, store, block_root).copy()
     chain_b = state.copy()
     chain_a = state
-    for slot in range(spec.SLOTS_PER_EPOCH * 2 + 1, spec.SLOTS_PER_EPOCH * 3):
+    for slot in range(spec.SLOTS_PER_EPOCH * 4 + 1, spec.SLOTS_PER_EPOCH * 5):
         if slot % 2 != 0:
             # chain A -> (with SLOTS_PER_EPOCH==8) 17, skip, 19, skip, 21, skip, 23
             chain_a, store, _ = yield from apply_next_slots_with_attestations(
@@ -1691,25 +1692,25 @@ def test_experiment(spec, state):
             )
             next_slots(spec, chain_a, 1)
 
-    # Epoch 3
-    assert chain_a.slot == spec.SLOTS_PER_EPOCH * 3
-    assert chain_b.slot == spec.SLOTS_PER_EPOCH * 3
+    # Epoch 5
+    assert chain_a.slot == spec.SLOTS_PER_EPOCH * 5
+    assert chain_b.slot == spec.SLOTS_PER_EPOCH * 5
 
     next_slots(spec, chain_a, 1)
     next_slots(spec, chain_b, 1)
 
-    time = store.genesis_time + (spec.SLOTS_PER_EPOCH * 3 + 1) * spec.config.SECONDS_PER_SLOT
+    time = store.genesis_time + (spec.SLOTS_PER_EPOCH * 5 + 1) * spec.config.SECONDS_PER_SLOT
     on_tick_and_append_step(spec, store, time, test_steps)
     head = spec.Root(spec.get_head(store))
 
     assert (head in chain_a.block_roots) or (head in chain_b.block_roots)
     assert head in chain_a.block_roots
     assert not (head in chain_b.block_roots)
-    assert spec.get_weight(store, chain_a.block_roots[spec.SLOTS_PER_EPOCH * 2 + 1]) == spec.get_weight(store, chain_b.block_roots[spec.SLOTS_PER_EPOCH * 2 + 2])
-    assert spec.get_current_epoch(chain_a) == 3
-    assert spec.get_current_epoch(chain_b) == 3
-    assert store.justified_checkpoint.epoch == 1
-    assert store.unrealized_justified_checkpoint.epoch == 1
+    assert spec.get_weight(store, chain_a.block_roots[spec.SLOTS_PER_EPOCH * 4 + 1]) == spec.get_weight(store, chain_b.block_roots[spec.SLOTS_PER_EPOCH * 4 + 2])
+    assert spec.get_current_epoch(chain_a) == 5
+    assert spec.get_current_epoch(chain_b) == 5
+    assert store.justified_checkpoint.epoch == 3
+    assert store.unrealized_justified_checkpoint.epoch == 3
     for i in range(0, num_validators):
         assert chain_a.validators[i].effective_balance == 31750000001
         assert chain_b.validators[i].effective_balance == 31750000001
