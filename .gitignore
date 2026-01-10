@@ -49,3 +49,8 @@ site
 
 # docker test results
 testResults
+.claude/
+.devcontainer/
+.vscode/
+CLAUDE.md
+clean.sh
