@@ -10,6 +10,7 @@ from pytest import StashKey, TestReport
 
 from eth_consensus_specs.gen_helpers.gen_base.dumper import Dumper
 from eth_consensus_specs.test import context
+from eth_consensus_specs.test.helpers.constants import TESTGEN_FORKS
 from eth_consensus_specs.test.helpers.typing import SpecForkName
 from tests.infra.manifest import Manifest
 from tests.infra.yield_generator import MultiPhaseResult
@@ -271,8 +272,7 @@ class YieldGeneratorPlugin:
             return False
         reports = item.stash.get(self.phase_report_key, {})
         return not any(
-            reports.get(phase) is not None and reports[phase].skipped
-            for phase in ("setup", "call")
+            reports.get(phase) is not None and reports[phase].skipped for phase in ("setup", "call")
         )
 
     @pytest.hookimpl(hookwrapper=True)
@@ -305,8 +305,6 @@ class YieldGeneratorPlugin:
             context.is_generator = True
             # Limit to TESTGEN_FORKS so experimental forks (eip7928, eip8025)
             # don't produce output that the old generator wouldn't produce.
-            from eth_consensus_specs.test.helpers.constants import TESTGEN_FORKS
-
             context.DEFAULT_PYTEST_FORKS = set(TESTGEN_FORKS)
 
     @staticmethod
@@ -336,9 +334,7 @@ class YieldGeneratorPlugin:
             )
             self._dump_phase(manifest, result, manifest.fork_name)
 
-    def _dump_phase(
-        self, manifest: Manifest, phase_result: list, fork_name: SpecForkName
-    ) -> None:
+    def _dump_phase(self, manifest: Manifest, phase_result: list, fork_name: SpecForkName) -> None:
         """Write a single phase's test vector to disk."""
         manifest = manifest.with_defaults(Manifest(fork_name=fork_name))
         assert manifest.is_complete(), (

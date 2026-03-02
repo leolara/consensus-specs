@@ -29,9 +29,7 @@ def _template_shuffling_test(seed: bytes, count: int):
             {
                 "seed": "0x" + seed.hex(),
                 "count": count,
-                "mapping": [
-                    int(spec.compute_shuffled_index(i, count, seed)) for i in range(count)
-                ],
+                "mapping": [int(spec.compute_shuffled_index(i, count, seed)) for i in range(count)],
             },
         )
 
