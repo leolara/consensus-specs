@@ -63,9 +63,9 @@ This is the modification of the fork-choice accompanying the Gloas upgrade.
 | ------------------------------------ | ----------------------- |
 | `PAYLOAD_TIMELY_THRESHOLD`           | `PTC_SIZE // 2` (= 256) |
 | `DATA_AVAILABILITY_TIMELY_THRESHOLD` | `PTC_SIZE // 2` (= 256) |
-| `PAYLOAD_STATUS_PENDING`             | `PayloadStatus(0)`      |
-| `PAYLOAD_STATUS_EMPTY`               | `PayloadStatus(1)`      |
-| `PAYLOAD_STATUS_FULL`                | `PayloadStatus(2)`      |
+| `PAYLOAD_STATUS_EMPTY`               | `PayloadStatus(0)`      |
+| `PAYLOAD_STATUS_FULL`                | `PayloadStatus(1)`      |
+| `PAYLOAD_STATUS_PENDING`             | `PayloadStatus(2)`      |
 | `ATTESTATION_TIMELINESS_INDEX`       | `0`                     |
 | `PTC_TIMELINESS_INDEX`               | `1`                     |
 | `NUM_BLOCK_TIMELINESS_DEADLINES`     | `2`                     |
@@ -602,6 +602,10 @@ def validate_on_attestation(store: Store, attestation: Attestation, is_from_bloc
     assert attestation.data.index in [0, 1]
     if block_slot == attestation.data.slot:
         assert attestation.data.index == 0
+    # [New in Gloas:EIP7732]
+    # If attesting for a full node, the payload must be known
+    if attestation.data.index == 1:
+        assert attestation.data.beacon_block_root in store.payload_states
 
     # LMD vote must be consistent with FFG vote target
     assert target.root == get_checkpoint_block(
